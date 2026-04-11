@@ -16,6 +16,8 @@ Go版: [nlk](https://github.com/nlink-jp/nlk)
 | [`backoff`](src/nlk/backoff.py) | ジッター付き指数バックオフ待ち時間計算 |
 | [`validate`](src/nlk/validate.py) | ルールベースのLLM出力バリデーション |
 
+[リファレンスマニュアル](docs/ja/reference.ja.md)に完全なAPIドキュメントがあります。
+
 ## インストール
 
 ```bash

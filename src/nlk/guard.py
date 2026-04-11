@@ -3,6 +3,11 @@
 Wraps untrusted data in XML tags containing a cryptographic nonce,
 making it physically distinct from system instructions in the prompt.
 
+A new :class:`Tag` must be generated for every LLM call (turn).
+Reusing the same Tag across multiple turns is unsafe because a previous
+LLM response may echo the tag name, allowing prompt injection in
+subsequent turns.
+
 Usage::
 
     tag = Tag.new()
@@ -43,7 +48,17 @@ class Tag:
         return self._name
 
     def wrap(self, data: str) -> str:
-        """Enclose data in XML tags: <tagname>data</tagname>."""
+        """Enclose data in XML tags: <tagname>data</tagname>.
+
+        Raises:
+            ValueError: If *data* contains the tag name string.
+                This is a defense-in-depth check — with a 128-bit random
+                nonce the probability of accidental collision is negligible.
+        """
+        if self._name in data:
+            raise ValueError(
+                "guard: input data contains the tag name (tag collision)"
+            )
         return f"<{self._name}>{data}</{self._name}>"
 
     def expand(self, template: str, placeholder: str = DEFAULT_PLACEHOLDER) -> str:

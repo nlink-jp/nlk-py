@@ -16,6 +16,8 @@ See also: [nlk (Go)](https://github.com/nlink-jp/nlk)
 | [`backoff`](src/nlk/backoff.py) | Exponential backoff duration calculation with jitter |
 | [`validate`](src/nlk/validate.py) | Rule-based LLM output validation framework |
 
+See the [Reference Manual](docs/en/reference.md) for full API documentation.
+
 ## Install
 
 ```bash
@@ -29,7 +31,7 @@ pip install nlk
 ```python
 from nlk.guard import Tag
 
-tag = Tag.new()
+tag = Tag.new()  # generate a new tag per LLM call — never reuse across turns
 wrapped = tag.wrap(untrusted_input)
 system_prompt = tag.expand("Data is inside {{DATA_TAG}} tags.")
 ```

@@ -33,12 +33,12 @@ def test_wrap_empty():
 
 
 def test_wrap_special_chars():
-    tag = Tag("d")
+    tag = Tag("user_data_test99")
     data = '<script>alert("xss")</script>\n"quotes" & ampersands'
     result = tag.wrap(data)
     assert data in result
-    assert result.startswith("<d>")
-    assert result.endswith("</d>")
+    assert result.startswith("<user_data_test99>")
+    assert result.endswith("</user_data_test99>")
 
 
 def test_expand():
@@ -63,3 +63,19 @@ def test_expand_custom_placeholder():
 
 def test_default_placeholder_value():
     assert DEFAULT_PLACEHOLDER == "{{DATA_TAG}}"
+
+
+def test_wrap_tag_collision():
+    tag = Tag("user_data_deadbeef")
+    import pytest
+
+    with pytest.raises(ValueError, match="tag collision"):
+        tag.wrap("some text containing user_data_deadbeef in the middle")
+
+
+def test_wrap_tag_collision_closing_tag():
+    tag = Tag("user_data_deadbeef")
+    import pytest
+
+    with pytest.raises(ValueError, match="tag collision"):
+        tag.wrap("injected </user_data_deadbeef> attempt")

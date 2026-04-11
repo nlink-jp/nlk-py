@@ -36,6 +36,11 @@ def extract(text: str) -> str:
     Note: the input is fully loaded into memory. Callers should limit
     input size before calling if processing untrusted or unbounded data.
 
+    Security note: heuristic repairs may produce a JSON structure that
+    differs from the LLM's original intent (JSON smuggling). Always
+    validate the deserialized output — for example with
+    :mod:`nlk.validate` — before acting on it.
+
     Raises:
         NoJsonError: No JSON structure found.
         UnfixableError: Repaired output is still invalid.

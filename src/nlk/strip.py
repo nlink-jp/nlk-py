@@ -20,6 +20,9 @@ def think_tags(text: str) -> str:
 
     Handles: <think>, <thinking>, <reasoning>, <reflection>,
     Gemma 4 channel format, empty tags, unclosed tags.
+
+    Note: the input is fully loaded into memory. Callers should limit
+    input size before calling if processing untrusted or unbounded data.
     """
     result = tags(text, "think", "thinking", "reasoning", "reflection")
     result = _strip_gemma4_thought(result)
