@@ -1,6 +1,6 @@
 [project]
 name = "nlk"
-version = "0.1.0"
+version = "0.2.1"
 description = "Lightweight LLM utility toolkit — guard, jsonfix, strip, backoff, validate. Zero external dependencies."
 readme = "README.md"
 license = { text = "MIT" }
