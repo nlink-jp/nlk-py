@@ -120,6 +120,14 @@ def _unescape_json(text: str) -> str:
     return "".join(out)
 
 
+_ZERO_WIDTH_SPACES = frozenset("\u200b\ufeff\u180e")
+
+
+def _is_json_space(ch: str) -> bool:
+    """Check if character is whitespace, including zero-width Unicode spaces."""
+    return ch.isspace() or ch in _ZERO_WIDTH_SPACES
+
+
 class _Parser:
     """Recursive descent JSON parser with repair capabilities."""
 
@@ -177,7 +185,7 @@ class _Parser:
     # --- Whitespace / comments ---
 
     def _skip_ws(self) -> None:
-        while not self._at_end() and self._input[self._pos].isspace():
+        while not self._at_end() and _is_json_space(self._input[self._pos]):
             self._pos += 1
 
     def _skip_ws_and_comments(self) -> None:
@@ -206,7 +214,7 @@ class _Parser:
             break
 
     def _skip_non_json(self) -> None:
-        """Skip until we find { [ or (."""
+        """Skip until we find { [ or a tuple-like (."""
         while not self._at_end():
             self._skip_ws_and_comments()
             if self._at_end():
@@ -219,9 +227,31 @@ class _Parser:
                     self._advance()
                 continue
             ch = self._peek()
-            if ch in ('{', '[', '('):
+            if ch in ('{', '['):
+                return
+            if ch == '(' and self._looks_like_tuple():
                 return
             self._advance()
+
+    def _looks_like_tuple(self) -> bool:
+        """Check if '(' starts a tuple rather than prose parentheses."""
+        i = self._pos + 1  # skip '('
+        while i < len(self._input) and _is_json_space(self._input[i]):
+            i += 1
+        if i >= len(self._input):
+            return False
+        ch = self._input[i]
+        if ch in ('"', "'", '{', '[', '(', '-', '.'):
+            return True
+        if ch.isdigit():
+            return True
+        remaining = self._input[i:]
+        for lit in ("true", "false", "null", "none", "True", "False", "None", "NULL"):
+            if remaining.startswith(lit):
+                end = i + len(lit)
+                if end >= len(self._input) or not self._input[end].isalpha():
+                    return True
+        return False
 
     # --- Value ---
 
@@ -428,7 +458,7 @@ class _Parser:
 
     def _peek_ahead_skip_space(self, offset: int) -> str:
         i = self._pos + offset
-        while i < len(self._input) and self._input[i].isspace():
+        while i < len(self._input) and _is_json_space(self._input[i]):
             i += 1
         if i >= len(self._input):
             return ""

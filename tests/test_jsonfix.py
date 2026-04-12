@@ -204,3 +204,41 @@ def test_real_world():
 def test_japanese():
     r = must_extract("japanese", '{"emoji": "🎉", "jp": "日本語テスト"}')
     assert json.loads(r)["jp"] == "日本語テスト"
+
+# --- Zero-width space handling ---
+
+def test_zero_width_space():
+    r = must_extract("zwsp", '{\u200b"key"\u200b:\u200b"value"\u200b}')
+    assert json.loads(r)["key"] == "value"
+
+def test_bom():
+    r = must_extract("bom", '\ufeff{"key": "value"}')
+    assert json.loads(r)["key"] == "value"
+
+def test_mongolian_vowel_separator():
+    r = must_extract("mvs", '{\u180e"key":\u180e"value"}')
+    d = json.loads(r)
+    assert d["key"] == "value"
+
+# --- Parenthesized prose should not hijack JSON ---
+
+def test_paren_prose_before_json():
+    r = must_extract("paren prose", '(some clarification):\n{"key": "value"}')
+    assert json.loads(r)["key"] == "value"
+
+def test_paren_prose_before_fenced_json():
+    raw = '(note: important):\n```json\n{"result": "ok"}\n```'
+    r = must_extract("paren fenced", raw)
+    assert json.loads(r)["result"] == "ok"
+
+def test_tuple_still_works():
+    r = must_extract("tuple", '("a", "b", "c")')
+    assert json.loads(r) == ["a", "b", "c"]
+
+def test_tuple_with_numbers():
+    r = must_extract("tuple nums", '(1, 2, 3)')
+    assert json.loads(r) == [1, 2, 3]
+
+def test_tuple_with_booleans():
+    r = must_extract("tuple bools", '(true, false, null)')
+    assert json.loads(r) == [True, False, None]
