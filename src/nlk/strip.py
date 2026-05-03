@@ -41,14 +41,32 @@ def tags(text: str, *tag_names: str) -> str:
 
 
 def _strip_xml_tag(text: str, name: str) -> str:
-    """Remove all occurrences of <name>...</name> (case-insensitive)."""
+    """Remove all occurrences of <name>...</name> (case-insensitive).
+
+    Skips occurrences inside markdown inline-code spans
+    (single-backtick on the same line, e.g. ``\\`<think>\\```). LLM
+    responses that EXPLAIN the literal tag — common when the user
+    asks "what is <think>?" — would otherwise have everything from
+    the literal `<think>` to end-of-text stripped under the
+    unclosed-tag rule, truncating the explanation mid-sentence.
+
+    Out of scope: triple-backtick fenced blocks and HTML <code>;
+    add when a real symptom motivates it.
+    """
     open_tag = f"<{name}>"
     close_tag = f"</{name}>"
 
+    scan_from = 0
     while True:
-        open_idx = _index_ci(text, open_tag)
+        open_idx = _index_ci(text[scan_from:], open_tag)
         if open_idx < 0:
             break
+        open_idx += scan_from
+
+        if _is_inside_inline_code_span(text, open_idx):
+            # Skip just this occurrence; advance past the open tag.
+            scan_from = open_idx + len(open_tag)
+            continue
 
         search_from = open_idx + len(open_tag)
         close_idx = _index_ci(text[search_from:], close_tag)
@@ -60,8 +78,24 @@ def _strip_xml_tag(text: str, name: str) -> str:
 
         end_idx = search_from + close_idx + len(close_tag)
         text = text[:open_idx] + text[end_idx:]
+        # Resume scanning from the cut point.
+        scan_from = open_idx
 
     return text.strip()
+
+
+def _is_inside_inline_code_span(text: str, pos: int) -> bool:
+    """True if ``pos`` falls inside a single-backtick inline code span.
+
+    Detection: count backticks on the same line strictly before
+    ``pos``; odd count means an unclosed span is currently open.
+    Lines are delimited by ``\\n``. Triple-backtick fenced blocks
+    and HTML ``<code>`` are intentionally NOT modelled.
+    """
+    if pos <= 0 or pos > len(text):
+        return False
+    line_start = text.rfind("\n", 0, pos) + 1  # 0 if not found
+    return text.count("`", line_start, pos) % 2 == 1
 
 
 def _strip_gemma4_thought(text: str) -> str:

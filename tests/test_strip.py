@@ -86,3 +86,32 @@ def test_custom_tags_multiple():
 def test_custom_tags_no_match():
     text = "No matching tags"
     assert tags(text, "nonexistent") == text
+
+
+# --- Inline code-span skip (v0.2.2 fix) ---
+
+
+def test_think_inside_inline_code_span():
+    """LLM explaining the literal think tag inside `...` keeps the rest."""
+    raw = "結論から申し上げますと、`<think>` は内部思考マーカーで、ユーザーには見せません。"
+    assert think_tags(raw) == raw
+
+
+def test_think_inside_code_span_with_real_block():
+    """A code-span <think> reference and a real <think>...</think> block coexist."""
+    raw = "Note: `<think>` is the marker.\n<think>actual reasoning</think>\nFinal answer."
+    # Surrounding newlines around the removed pair both remain
+    # (existing behaviour, unchanged by this fix).
+    assert think_tags(raw) == "Note: `<think>` is the marker.\n\nFinal answer."
+
+
+def test_think_code_span_does_not_cross_lines():
+    """Backtick on a previous line must not carry into the next line."""
+    raw = "Some `inline` text on line 1.\n<think>real reasoning</think>\nResult."
+    assert think_tags(raw) == "Some `inline` text on line 1.\n\nResult."
+
+
+def test_think_code_span_with_trailing_unclosed_pattern():
+    """The realistic shell-agent failure: `<think>` literal followed by prose."""
+    raw = "ご質問ありがとうございます。\n\n結論から申し上げますと、`<think>` は内部思考マーカーで、ユーザーには見せません。詳しい説明はこちら…"
+    assert think_tags(raw) == raw
